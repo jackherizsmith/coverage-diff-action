@@ -32,7 +32,7 @@ async function run() {
 
   core.info(`Cloning wiki repository...`);
 
-  await gitClone(
+  console.log(
     `https://x-access-token:${githubToken}@github.com/${process.env.GITHUB_REPOSITORY}.wiki.git`,
     WIKI_PATH
   );
