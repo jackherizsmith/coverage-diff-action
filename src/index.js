@@ -9,6 +9,7 @@ const { existsSync } = require("fs");
 const path = require("path");
 const core = require("@actions/core");
 const github = require("@actions/github");
+const readdirGlob = require('readdir-glob');
 
 const { gitClone, gitUpdate } = require("./git");
 const { isBranch, isMainBranch } = require("./branch");
@@ -29,14 +30,12 @@ async function run() {
   const coverageOutput = core.getInput("coverage-output-filepath");
   const generatedCoverageFilepath = core.getInput("generated-coverage-filepath");
 
-  core.info(`Cloning wiki repositories... 201`);
-  core.info(context.workspace);
-  core.info(generatedCoverageFilepath);
-  core.info(JSON.stringify(context));
+  core.info(`Cloning wiki repositories... 202`);
+  core.info(`base ref: ${context.payload.pull_request.base.ref}`);
 
   const octokit = github.getOctokit(githubToken);
 
-  const globber = readdirGlob(context.workspace, {pattern: generatedCoverageFilepath});
+  const globber = readdirGlob('.', {pattern: generatedCoverageFilepath});
 
   let globbing = true;
   let headJson = {};
@@ -44,7 +43,7 @@ async function run() {
 
   while(globbing) {
     globber.on('match', async (match) => {
-      globFile = JSON.parse(await readFile(match.relative, "utf8"));
+      globFile = JSON.parse(await readFile(match.absolute, "utf8"));
       Object.keys(globFile).forEach(key => {
         headJson[key] = globFile[key];
       })
@@ -59,12 +58,14 @@ async function run() {
     });
   }
 
-  console.log(headJson)
+  core.info(`head: ${headJson}`);
 
   const pct = average(
-    Object.keys(head.total).map((t) => head.total[t].pct),
+    Object.keys(headJson.total).map((t) => headJson.total[t].pct),
     0
   );
+
+  core.info(`pct: ${pct}`);
 
   if (
     isBranch() &&
