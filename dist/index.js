@@ -17233,7 +17233,7 @@ const {
   mkdir,
   mkdtemp,
 } = __nccwpck_require__(3292);
-const { existsSync } = __nccwpck_require__(7147);
+const { existsSync, readFileSync } = __nccwpck_require__(7147);
 const path = __nccwpck_require__(1017);
 const core = __nccwpck_require__(2186);
 const github = __nccwpck_require__(5438);
@@ -17258,7 +17258,7 @@ async function run() {
   const coverageOutput = core.getInput("coverage-output-filepath");
   const generatedCoverageFilepath = core.getInput("generated-coverage-filepath");
 
-  core.info(`Cloning wiki repositories... 202`);
+  core.info(`Cloning wiki repositories... 204`);
   core.info(`base ref: ${context.payload.pull_request.base.ref}`);
 
   const octokit = github.getOctokit(githubToken);
@@ -17268,10 +17268,12 @@ async function run() {
   let globbing = true;
   let headJson = {};
   let globFile = {};
+  core.info('globbing');
 
   while(globbing) {
     globber.on('match', async (match) => {
-      globFile = JSON.parse(await readFile(match.absolute, "utf8"));
+      globFile = JSON.parse(readFileSync(match.absolute));
+      core.info(JSON.stringify(globFile));
       Object.keys(globFile).forEach(key => {
         headJson[key] = globFile[key];
       })

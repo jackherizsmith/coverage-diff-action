@@ -5,7 +5,7 @@ const {
   mkdir,
   mkdtemp,
 } = require("fs/promises");
-const { existsSync } = require("fs");
+const { existsSync, readFileSync } = require("fs");
 const path = require("path");
 const core = require("@actions/core");
 const github = require("@actions/github");
@@ -30,7 +30,7 @@ async function run() {
   const coverageOutput = core.getInput("coverage-output-filepath");
   const generatedCoverageFilepath = core.getInput("generated-coverage-filepath");
 
-  core.info(`Cloning wiki repositories... 202`);
+  core.info(`Cloning wiki repositories... 204`);
   core.info(`base ref: ${context.payload.pull_request.base.ref}`);
 
   const octokit = github.getOctokit(githubToken);
@@ -40,10 +40,12 @@ async function run() {
   let globbing = true;
   let headJson = {};
   let globFile = {};
+  core.info('globbing');
 
   while(globbing) {
     globber.on('match', async (match) => {
-      globFile = JSON.parse(await readFile(match.absolute, "utf8"));
+      globFile = JSON.parse(readFileSync(match.absolute));
+      core.info(JSON.stringify(globFile));
       Object.keys(globFile).forEach(key => {
         headJson[key] = globFile[key];
       })
