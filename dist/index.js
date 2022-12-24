@@ -10372,7 +10372,7 @@ async function run() {
   const generatedCoverageFilepath = core.getInput("generated-coverage-filepath");
   const allowedToFail = core.getBooleanInput("allowed-to-fail");
 
-  core.info(`Begin coverage analysis... 209`);
+  core.info(`Begin coverage analysis... 2010`);
 
   const octokit = github.getOctokit(githubToken);
 
@@ -10391,6 +10391,18 @@ async function run() {
   );
 
   core.info(`pct: ${pct}`);
+
+  await octokit.request('PUT /repos/{owner}/{repo}/contents/{path}', {
+    owner: context.payload.repository.owner.login,
+    repo: context.payload.repository.name,
+    path: coverageOutput,
+    message: 'create / update branch coverage',
+    committer: {
+      name: 'PR Coverage Diff',
+      email: 'pr-coverage-diff'
+    },
+    content: JSON.stringify(head),
+  });
 
   let base = {};
   let diff = {};
