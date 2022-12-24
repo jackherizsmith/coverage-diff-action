@@ -10404,6 +10404,8 @@ async function run() {
     content: JSON.stringify(head),
   });
 
+  core.info('coverage uploaded for branch');
+
   let base = {};
   let diff = {};
   try {
