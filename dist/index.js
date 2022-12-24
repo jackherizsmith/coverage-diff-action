@@ -10385,7 +10385,7 @@ async function run() {
     throw new Error(`please create branch: ${coverageBranch}`);
   }
 
-  core.info(`Begin coverage analysis... 2017`);
+  core.info(`Begin coverage analysis... 2018`);
 
   let head = {};
 
@@ -10403,12 +10403,18 @@ async function run() {
 
   core.info(`pct: ${pct}`);
 
-  const headCoverage = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}{?ref}', {
-    owner: context.payload.repository.owner.login,
-    repo: context.payload.repository.name,
-    path: `${context.payload.pull_request.head.sha}.json`,
-    ref: coverageBranch
-  })
+  let headSha;
+  try {
+    const headCoverage = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}{?ref}', {
+      owner: context.payload.repository.owner.login,
+      repo: context.payload.repository.name,
+      path: `${context.payload.pull_request.head.sha}.json`,
+      ref: coverageBranch
+    });
+    headSha = headCoverage.data.sha;
+  } catch {
+    core.info('creating head coverage file');
+  }
 
   await octokit.request('PUT /repos/{owner}/{repo}/contents/{path}', {
     owner: context.payload.repository.owner.login,
@@ -10421,10 +10427,10 @@ async function run() {
       email: 'pr-coverage-diff'
     },
     content: btoa(JSON.stringify(head)),
-    sha: headCoverage?.data?.sha,
+    sha: headSha,
   });
 
-  core.info('coverage uploaded for branch');
+  core.info(`head coverage uploaded to branch ${coverageBranch}: coverage/${context.payload.pull_request.head.sha}.json`);
 
   let diff = {};
   try {
