@@ -17,7 +17,7 @@
   },
   "license": "MIT",
   "author": {
-    "name": "Jck Heriz-Smith",
+    "name": "Jck Heriz-Smith"
   },
   "scripts": {
     "build": "ncc build src/index.js --license licenses.txt"
