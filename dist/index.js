@@ -10370,20 +10370,18 @@ async function run() {
   const githubToken = core.getInput("github-token");
   const coverageOutput = core.getInput("coverage-output-filepath");
   const generatedCoverageFilepath = core.getInput("generated-coverage-filepath");
+  const allowedToFail = core.getBooleanInput("allowed-to-fail");
 
-  core.info(`Begin coverage analysis... 208`);
+  core.info(`Begin coverage analysis... 209`);
 
   const octokit = github.getOctokit(githubToken);
 
   let head = {};
 
   const file = JSON.parse(readFileSync(generatedCoverageFilepath));
-  core.info(JSON.stringify(file));
   Object.keys(file).forEach(key => {
     head[key] = file[key];
   });
-
-  core.info(`head: ${JSON.stringify(head)}`);
 
   const pct = average(
     Object.keys(head.total)
@@ -10394,28 +10392,36 @@ async function run() {
 
   core.info(`pct: ${pct}`);
 
-  const baseJson = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}{?ref}', {
-    owner: context.payload.repository.owner.login,
-    repo: context.payload.repository.name,
-    path: coverageOutput,
-    ref: context.payload.pull_request.base.ref
-  })
+  let base = {};
+  let diff = {};
+  try {
+    const {content: baseJson} = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}{?ref}', {
+      owner: context.payload.repository.owner.login,
+      repo: context.payload.repository.name,
+      path: coverageOutput,
+      ref: context.payload.pull_request.base.ref
+    })
+    core.info(`base: ${baseJson}`);
+    base = JSON.parse(baseJson);
 
-  core.info(`base: ${baseJson}`);
+    diff = computeDiff(base, head, { allowedToFail });
 
-  const issue_number = context.payload.pull_request.number;
-  const allowedToFail = core.getBooleanInput("allowed-to-fail");
-  const base = JSON.parse(baseJson);
+    core.info(`diff: ${diff}`);
 
-  const diff = computeDiff(base, head, { allowedToFail });
+    const issue_number = context.payload.pull_request.number;
+    core.info(`issue: ${issue_number}`);
 
-  if (issue_number) {
-    await deleteExistingComments(octokit, context.repo, issue_number);
+    if (issue_number) {
+      await deleteExistingComments(octokit, context.repo, issue_number);
 
-    core.info("Add a comment with the diff coverage report");
-    await addComment(octokit, context.repo, issue_number, diff.markdown);
-  } else {
-    core.info(diff.results);
+      core.info("Add a comment with the diff coverage report");
+      await addComment(octokit, context.repo, issue_number, diff.markdown);
+    } else {
+      core.info(diff.results);
+    }
+  } catch (e) {
+    // can merge without a base coverage file
+    core.info('base coverage file does not exist, merge to add it');
   }
 
   if (!allowedToFail && diff.regression) {
