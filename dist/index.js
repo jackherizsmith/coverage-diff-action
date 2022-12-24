@@ -10353,7 +10353,6 @@ var __webpack_exports__ = {};
 // This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
 (() => {
 const { readFileSync } = __nccwpck_require__(7147);
-const path = __nccwpck_require__(1017);
 const core = __nccwpck_require__(2186);
 const github = __nccwpck_require__(5438);
 
@@ -10364,12 +10363,15 @@ const { addComment, deleteExistingComments } = __nccwpck_require__(427);
 const { context } = github;
 
 async function run() {
+  if (!context?.payload?.pull_request) {
+    throw new Error('This action is only intended to run on pull requests.')
+  }
+
   const githubToken = core.getInput("github-token");
   const coverageOutput = core.getInput("coverage-output-filepath");
   const generatedCoverageFilepath = core.getInput("generated-coverage-filepath");
 
-  core.info(`Cloning wiki repositories... 206`);
-  core.info(`base ref: ${context.payload.pull_request.base.ref}`);
+  core.info(`Begin coverage analysis... 207`);
 
   const octokit = github.getOctokit(githubToken);
 
@@ -10393,12 +10395,14 @@ async function run() {
   core.info(`pct: ${pct}`);
 
   const baseJson = await octokit.rest.repos.getContent({
-    owner: context.repository.owner.login,
-    repo: context.repository.name,
+    owner: context.payload.repository.owner.login,
+    repo: context.payload.repository.name,
     path: `blob/${context.payload.pull_request.base.ref}/${coverageOutput}`,
   });
 
-  const issue_number = context?.payload?.pull_request?.number;
+  core.info(`base: ${baseJson}`);
+
+  const issue_number = context.payload.pull_request.number;
   const allowedToFail = core.getBooleanInput("allowed-to-fail");
   const base = JSON.parse(baseJson);
 

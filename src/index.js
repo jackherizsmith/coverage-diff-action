@@ -1,5 +1,4 @@
 const { readFileSync } = require("fs");
-const path = require("path");
 const core = require("@actions/core");
 const github = require("@actions/github");
 
@@ -10,12 +9,15 @@ const { addComment, deleteExistingComments } = require("./comment");
 const { context } = github;
 
 async function run() {
+  if (!context?.payload?.pull_request) {
+    throw new Error('This action is only intended to run on pull requests.')
+  }
+
   const githubToken = core.getInput("github-token");
   const coverageOutput = core.getInput("coverage-output-filepath");
   const generatedCoverageFilepath = core.getInput("generated-coverage-filepath");
 
-  core.info(`Cloning wiki repositories... 206`);
-  core.info(`base ref: ${context.payload.pull_request.base.ref}`);
+  core.info(`Begin coverage analysis... 207`);
 
   const octokit = github.getOctokit(githubToken);
 
@@ -39,12 +41,14 @@ async function run() {
   core.info(`pct: ${pct}`);
 
   const baseJson = await octokit.rest.repos.getContent({
-    owner: context.repository.owner.login,
-    repo: context.repository.name,
+    owner: context.payload.repository.owner.login,
+    repo: context.payload.repository.name,
     path: `blob/${context.payload.pull_request.base.ref}/${coverageOutput}`,
   });
 
-  const issue_number = context?.payload?.pull_request?.number;
+  core.info(`base: ${baseJson}`);
+
+  const issue_number = context.payload.pull_request.number;
   const allowedToFail = core.getBooleanInput("allowed-to-fail");
   const base = JSON.parse(baseJson);
 
