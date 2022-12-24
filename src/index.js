@@ -18,7 +18,7 @@ async function run() {
   const generatedCoverageFilepath = core.getInput("generated-coverage-filepath");
   const allowedToFail = core.getBooleanInput("allowed-to-fail");
 
-  core.info(`Begin coverage analysis... 2013`);
+  core.info(`Begin coverage analysis... 2014`);
 
   const octokit = github.getOctokit(githubToken);
 
@@ -44,6 +44,8 @@ async function run() {
     path: coverageOutput,
     ref: context.payload.pull_request.head.ref
   })
+
+  core.info(headSha)
 
   await octokit.request('PUT /repos/{owner}/{repo}/contents/{path}', {
     owner: context.payload.repository.owner.login,
