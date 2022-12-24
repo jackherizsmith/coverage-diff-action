@@ -5,12 +5,12 @@ const {
   mkdir,
   mkdtemp,
 } = require("fs/promises");
-const { existsSync } = require("fs");
+const { existsSync, readdirSync } = require("fs");
 const path = require("path");
 const core = require("@actions/core");
 const github = require("@actions/github");
 
-const { gitClone, gitUpdate } = require("./git");
+const { gitUpdate } = require("./git");
 const { isBranch, isMainBranch } = require("./branch");
 const { getShieldURL, getJSONBadge } = require("./badge");
 const { average } = require("./math");
@@ -27,19 +27,21 @@ async function run() {
 
   const githubToken = core.getInput("github-token");
   const baseSummaryFilename = core.getInput("base-summary-filename");
-  const coverageFilename = core.getInput("coverage-filename");
+  const coverageFilepath = core.getInput("coverage-filepath");
   const badgeThresholdOrange = core.getInput("badge-threshold-orange");
-
-  core.info(`Cloning wiki repository...`);
-
-  await gitClone(
-    `https://x-access-token:${githubToken}@github.com/${process.env.GITHUB_REPOSITORY}.wiki.git`,
-    WIKI_PATH
-  );
 
   const octokit = github.getOctokit(githubToken);
 
-  const head = JSON.parse(await readFile(coverageFilename, "utf8"));
+  const hasMultipleCoverageFiles = coverageFilepath.includes('*');
+  const [covDir, covPath] = coverageFilepath.split('*');
+  const coverageFiles = hasMultipleCoverageFiles ? readdirSync(covDir).filter(fn => fn.endsWith(covPath)) : [coverageFilepath];
+
+  // combine coverageFiles into JSON head, save as head-coverage.json to repo coverage location to compare against base-coverage.json
+  let head = {};
+  for (const file in coverageFiles) {
+    const thisCoverage = JSON.parse(await readFile(file, "utf8"));
+    Object.keys(thisCoverage).forEach(key => head[key] = file[key]);
+  }
 
   const pct = average(
     Object.keys(head.total).map((t) => head.total[t].pct),
@@ -55,7 +57,7 @@ async function run() {
     const badgeFilename = core.getInput("badge-filename");
 
     core.info("Saving json-summary report into the repo wiki");
-    await copyFile(coverageFilename, path.join(WIKI_PATH, baseSummaryFilename));
+    await copyFile(coverageFilepath, path.join(WIKI_PATH, baseSummaryFilename));
 
     if (BadgeEnabled) {
       core.info("Saving Badge into the repo wiki");

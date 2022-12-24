@@ -2,17 +2,17 @@ name: Coverage Diff
 branding:
   icon: umbrella
   color: green
-description: Publish diff coverage report as PR comment, and create a coverage badge to display on the readme.
+description: Publish diff coverage report as PR comment.
 inputs:
   github-token:
-    description: A GitHub token to write comments and write the badge to the wiki.
+    description: A GitHub token to write comments and update repo coverage.
     required: true
-  coverage-filename:
-    description: Path of the json-summary file to analyze.
+  coverage-filepath:
+    description: Path of the json-summary file(s) to analyse.
     default: coverage/coverage-summary.json
     required: false
-  base-summary-filename:
-    description: Name of the json file containing the repository's default branch json-summary stored in the repo wiki.
+  base-summary-filepath:
+    description: Path to the json file containing the base json-summary.
     default: base-summary.json
     required: false
   allowed-to-fail:
@@ -24,7 +24,7 @@ inputs:
     default: "true"
     required: false
   badge-filename:
-    description: Name of the json file containing badge informations stored in the repo wiki.
+    description: Name of the json file containing badge information stored in the repo wiki.
     default: coverage-diff-badge.json
     required: false
   badge-threshold-green:

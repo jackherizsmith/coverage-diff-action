@@ -17,8 +17,7 @@
   },
   "license": "MIT",
   "author": {
-    "name": "Guillaume Gérard",
-    "url": "https://guillaume.sh"
+    "name": "Jck Heriz-Smith",
   },
   "scripts": {
     "build": "ncc build src/index.js --license licenses.txt"
