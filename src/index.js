@@ -18,7 +18,7 @@ async function run() {
   const generatedCoverageFilepath = core.getInput("generated-coverage-filepath");
   const allowedToFail = core.getBooleanInput("allowed-to-fail");
 
-  core.info(`Begin coverage analysis... 2011`);
+  core.info(`Begin coverage analysis... 2012`);
 
   const octokit = github.getOctokit(githubToken);
 
