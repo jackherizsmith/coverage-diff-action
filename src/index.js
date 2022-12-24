@@ -14,11 +14,11 @@ async function run() {
   }
 
   const githubToken = core.getInput("github-token");
-  const coverageOutput = core.getInput("coverage-output-filepath");
+  const coverageBranch = core.getInput("coverage-branch");
   const generatedCoverageFilepath = core.getInput("generated-coverage-filepath");
   const allowedToFail = core.getBooleanInput("allowed-to-fail");
 
-  core.info(`Begin coverage analysis... 2015`);
+  core.info(`Begin coverage analysis... 2016`);
 
   const octokit = github.getOctokit(githubToken);
 
@@ -38,27 +38,37 @@ async function run() {
 
   core.info(`pct: ${pct}`);
 
+  const coverageBranchRef = await octokit.request('GET /repos/{owner}/{repo}/branches/{branch}', {
+    owner: context.payload.repository.owner.login,
+    repo: context.payload.repository.name,
+    branch: coverageBranch,
+  });
+
+  core.info(JSON.stringify(coverageBranchRef));
+
+  if (!coverageBranchRef?.data?.name) {
+    throw new Error(`please create branch: ${coverageBranch}`)
+  }
+
   const headCoverage = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}{?ref}', {
     owner: context.payload.repository.owner.login,
     repo: context.payload.repository.name,
-    path: coverageOutput,
-    ref: context.payload.pull_request.head.ref
+    path: `${context.payload.pull_request.head.sha}.json`,
+    ref: coverageBranch
   })
-
-  core.info(JSON.stringify(headCoverage))
 
   await octokit.request('PUT /repos/{owner}/{repo}/contents/{path}', {
     owner: context.payload.repository.owner.login,
     repo: context.payload.repository.name,
-    path: coverageOutput,
-    branch: context.payload.pull_request.head.ref,
+    path: `coverage/${context.payload.pull_request.head.sha}.json`,
+    branch: coverageBranch,
     message: 'create / update branch coverage',
     committer: {
       name: 'PR Coverage Diff',
       email: 'pr-coverage-diff'
     },
     content: btoa(JSON.stringify(head)),
-    sha: headSha,
+    sha: headCoverage?.data?.sha,
   });
 
   core.info('coverage uploaded for branch');
@@ -69,8 +79,8 @@ async function run() {
     const {content: baseJson} = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}{?ref}', {
       owner: context.payload.repository.owner.login,
       repo: context.payload.repository.name,
-      path: coverageOutput,
-      ref: context.payload.pull_request.base.ref
+      path: `coverage/${context.payload.pull_request.base.sha}.json`,
+      ref: coverageBranch
     })
     core.info(`base: ${baseJson}`);
     base = JSON.parse(baseJson);

@@ -5,19 +5,19 @@ branding:
 description: Check base coverage and publish diff as PR comment.
 inputs:
   github-token:
-    description: A GitHub token check base branch coverage and write / replace PR comment.
+    description: A GitHub token to access coverage branch, generate diff, and write / replace PR comment.
     required: true
   generated-coverage-filepath:
     description: Path of the json-summary file(s) to analyse.
     default: coverage/coverage-summary.json
     required: false
-  coverage-output-filepath:
-    description: Path where the json-summary json file should be stored.
-    default: coverage-summary.json
-    required: false
   allowed-to-fail:
     description: When true, it will pass even if the PR decreases test coverage.
     default: "false"
+    required: false
+  coverage-branch:
+    description: Branch on which to store base coverage.
+    default: "coverage"
     required: false
 runs:
   using: node16
