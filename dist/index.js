@@ -10394,11 +10394,12 @@ async function run() {
 
   core.info(`pct: ${pct}`);
 
-  const baseJson = await octokit.rest.repos.getContent({
+  const baseJson = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}{?ref}', {
     owner: context.payload.repository.owner.login,
     repo: context.payload.repository.name,
-    path: `blob/${context.payload.pull_request.base.ref}/${coverageOutput}`,
-  });
+    path: coverageOutput,
+    ref: context.payload.pull_request.base.ref
+  })
 
   core.info(`base: ${baseJson}`);
 
