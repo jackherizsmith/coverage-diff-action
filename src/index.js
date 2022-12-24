@@ -32,10 +32,7 @@ async function run() {
 
   core.info(`Cloning wiki repository...`);
 
-  console.log(
-    `https://x-access-token:${githubToken}@github.com/${process.env.GITHUB_REPOSITORY}.wiki.git`,
-    WIKI_PATH
-  );
+  core.info(`https://x-access-token:${githubToken}@github.com/${process.env.GITHUB_REPOSITORY}.wiki.git`);
 
   const octokit = github.getOctokit(githubToken);
 
