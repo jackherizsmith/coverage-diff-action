@@ -30,9 +30,7 @@ async function run() {
   const coverageFilename = core.getInput("coverage-filename");
   const badgeThresholdOrange = core.getInput("badge-threshold-orange");
 
-  core.info(`Cloning wiki repository...`);
-
-  core.info(`https://x-access-token:${githubToken}@github.com/${process.env.GITHUB_REPOSITORY}.wiki.git`);
+  core.info(`Cloning wiki repositories...`);
 
   const octokit = github.getOctokit(githubToken);
 
