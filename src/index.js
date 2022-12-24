@@ -18,7 +18,7 @@ async function run() {
   const generatedCoverageFilepath = core.getInput("generated-coverage-filepath");
   const allowedToFail = core.getBooleanInput("allowed-to-fail");
 
-  core.info(`Begin coverage analysis... 2012`);
+  core.info(`Begin coverage analysis... 2013`);
 
   const octokit = github.getOctokit(githubToken);
 
@@ -38,6 +38,13 @@ async function run() {
 
   core.info(`pct: ${pct}`);
 
+  const {sha: headSha} = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}{?ref}', {
+    owner: context.payload.repository.owner.login,
+    repo: context.payload.repository.name,
+    path: coverageOutput,
+    ref: context.payload.pull_request.head.ref
+  })
+
   await octokit.request('PUT /repos/{owner}/{repo}/contents/{path}', {
     owner: context.payload.repository.owner.login,
     repo: context.payload.repository.name,
@@ -49,6 +56,7 @@ async function run() {
       email: 'pr-coverage-diff'
     },
     content: btoa(JSON.stringify(head)),
+    sha: headSha,
   });
 
   core.info('coverage uploaded for branch');
