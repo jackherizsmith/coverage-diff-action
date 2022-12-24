@@ -29,7 +29,7 @@ async function run() {
   const coverageOutput = core.getInput("coverage-output-filepath");
   const generatedCoverageFilepath = core.getInput("generated-coverage-filepath");
 
-  core.info(`Cloning wiki repositories...`);
+  core.info(`Cloning wiki repositories... 201`);
   core.info(context.workspace);
   core.info(generatedCoverageFilepath);
   core.info(JSON.stringify(context));
