@@ -10371,10 +10371,21 @@ async function run() {
   const coverageBranch = core.getInput("coverage-branch");
   const generatedCoverageFilepath = core.getInput("generated-coverage-filepath");
   const allowedToFail = core.getBooleanInput("allowed-to-fail");
-
-  core.info(`Begin coverage analysis... 2016`);
-
   const octokit = github.getOctokit(githubToken);
+
+  try {
+    const coverageBranchRef = await octokit.request('GET /repos/{owner}/{repo}/branches/{branch}', {
+      owner: context.payload.repository.owner.login,
+      repo: context.payload.repository.name,
+      branch: coverageBranch,
+    });
+
+    core.info(JSON.stringify(coverageBranchRef));
+  } catch (e) {
+    throw new Error(`please create branch: ${coverageBranch}`);
+  }
+
+  core.info(`Begin coverage analysis... 2017`);
 
   let head = {};
 
@@ -10391,18 +10402,6 @@ async function run() {
   );
 
   core.info(`pct: ${pct}`);
-
-  const coverageBranchRef = await octokit.request('GET /repos/{owner}/{repo}/branches/{branch}', {
-    owner: context.payload.repository.owner.login,
-    repo: context.payload.repository.name,
-    branch: coverageBranch,
-  });
-
-  core.info(JSON.stringify(coverageBranchRef));
-
-  if (!coverageBranchRef?.data?.name) {
-    throw new Error(`please create branch: ${coverageBranch}`)
-  }
 
   const headCoverage = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}{?ref}', {
     owner: context.payload.repository.owner.login,
@@ -10427,7 +10426,6 @@ async function run() {
 
   core.info('coverage uploaded for branch');
 
-  let base = {};
   let diff = {};
   try {
     const {content: baseJson} = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}{?ref}', {
@@ -10435,10 +10433,9 @@ async function run() {
       repo: context.payload.repository.name,
       path: `coverage/${context.payload.pull_request.base.sha}.json`,
       ref: coverageBranch
-    })
+    });
     core.info(`base: ${baseJson}`);
-    base = JSON.parse(baseJson);
-
+    const base = JSON.parse(baseJson);
     diff = computeDiff(base, head, { allowedToFail });
 
     core.info(`diff: ${diff}`);
