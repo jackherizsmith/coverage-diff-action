@@ -10371,7 +10371,7 @@ async function run() {
   const coverageOutput = core.getInput("coverage-output-filepath");
   const generatedCoverageFilepath = core.getInput("generated-coverage-filepath");
 
-  core.info(`Begin coverage analysis... 207`);
+  core.info(`Begin coverage analysis... 208`);
 
   const octokit = github.getOctokit(githubToken);
 
