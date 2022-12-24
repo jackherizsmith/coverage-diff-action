@@ -30,37 +30,20 @@ async function run() {
   const coverageOutput = core.getInput("coverage-output-filepath");
   const generatedCoverageFilepath = core.getInput("generated-coverage-filepath");
 
-  core.info(`Cloning wiki repositories... 204`);
+  core.info(`Cloning wiki repositories... 205`);
   core.info(`base ref: ${context.payload.pull_request.base.ref}`);
 
   const octokit = github.getOctokit(githubToken);
 
-  const globber = readdirGlob('.', {pattern: generatedCoverageFilepath});
-
-  let globbing = true;
   let headJson = {};
-  let globFile = {};
-  core.info('globbing');
 
-  while(globbing) {
-    globber.on('match', async (match) => {
-      globFile = JSON.parse(readFileSync(match.absolute));
-      core.info(JSON.stringify(globFile));
-      Object.keys(globFile).forEach(key => {
-        headJson[key] = globFile[key];
-      })
-    });
+  const file = JSON.parse(readFileSync(generatedCoverageFilepath));
+  core.info(JSON.stringify(file));
+  Object.keys(file).forEach(key => {
+    headJson[key] = file[key];
+  });
 
-    globber.on('error', err => {
-      throw new Error('fatal error', err.message);
-    });
-
-    globber.on('end', (m) => {
-      globbing = false;
-    });
-  }
-
-  core.info(`head: ${headJson}`);
+  core.info(`head: ${JSON.stringify(headJson)}`);
 
   const pct = average(
     Object.keys(headJson.total).map((t) => headJson.total[t].pct),
