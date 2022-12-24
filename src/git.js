@@ -5,7 +5,7 @@ async function gitClone(url, wikiPath) {
 }
 
 async function gitUpdate(wikiPath) {
-  return await simpleGit(wikiPath)
+  return simpleGit(wikiPath)
     .addConfig("user.name", "Coverage Diff Action")
     .addConfig("user.email", "coverage-diff-action")
     .add("*")
