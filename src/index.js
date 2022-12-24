@@ -1,19 +1,8 @@
-const {
-  readFile,
-  writeFile,
-  copyFile,
-  mkdir,
-  mkdtemp,
-} = require("fs/promises");
-const { existsSync, readFileSync } = require("fs");
+const { readFileSync } = require("fs");
 const path = require("path");
 const core = require("@actions/core");
 const github = require("@actions/github");
-const readdirGlob = require('readdir-glob');
 
-const { gitClone, gitUpdate } = require("./git");
-const { isBranch, isMainBranch } = require("./branch");
-const { getShieldURL, getJSONBadge } = require("./badge");
 const { average } = require("./math");
 const { computeDiff } = require("./diff");
 const { addComment, deleteExistingComments } = require("./comment");
@@ -21,95 +10,57 @@ const { addComment, deleteExistingComments } = require("./comment");
 const { context } = github;
 
 async function run() {
-  const tmpPath = await mkdir(path.join(process.env.GITHUB_WORKSPACE, "tmp"), {
-    recursive: true,
-  });
-  const WIKI_PATH = await mkdtemp(path.join(tmpPath, "coverage-diff-"));
-
   const githubToken = core.getInput("github-token");
   const coverageOutput = core.getInput("coverage-output-filepath");
   const generatedCoverageFilepath = core.getInput("generated-coverage-filepath");
 
-  core.info(`Cloning wiki repositories... 205`);
+  core.info(`Cloning wiki repositories... 206`);
   core.info(`base ref: ${context.payload.pull_request.base.ref}`);
 
   const octokit = github.getOctokit(githubToken);
 
-  let headJson = {};
+  let head = {};
 
   const file = JSON.parse(readFileSync(generatedCoverageFilepath));
   core.info(JSON.stringify(file));
   Object.keys(file).forEach(key => {
-    headJson[key] = file[key];
+    head[key] = file[key];
   });
 
-  core.info(`head: ${JSON.stringify(headJson)}`);
+  core.info(`head: ${JSON.stringify(head)}`);
 
   const pct = average(
-    Object.keys(headJson.total).map((t) => headJson.total[t].pct),
+    Object.keys(head.total)
+        .filter(t => typeof head.total[t].pct === 'number')
+        .map((t) => head.total[t].pct),
     0
   );
 
   core.info(`pct: ${pct}`);
 
-  if (
-    isBranch() &&
-    (await isMainBranch(octokit, context.repo.owner, context.repo.repo))
-  ) {
-    core.info("Running on default branch");
-    const BadgeEnabled = core.getBooleanInput("badge-enabled");
-    const badgeFilename = core.getInput("badge-filename");
+  const baseJson = await octokit.rest.repos.getContent({
+    owner: context.repository.owner.login,
+    repo: context.repository.name,
+    path: `blob/${context.payload.pull_request.base.ref}/${coverageOutput}`,
+  });
 
-    core.info("Saving json-summary report into the repo wiki");
-    await copyFile(coverageFilename, path.join(WIKI_PATH, baseSummaryFilename));
+  const issue_number = context?.payload?.pull_request?.number;
+  const allowedToFail = core.getBooleanInput("allowed-to-fail");
+  const base = JSON.parse(baseJson);
 
-    if (BadgeEnabled) {
-      core.info("Saving Badge into the repo wiki");
+  const diff = computeDiff(base, head, { allowedToFail });
 
-      const badgeThresholdGreen = core.getInput("badge-threshold-green");
+  if (issue_number) {
+    await deleteExistingComments(octokit, context.repo, issue_number);
 
-      await writeFile(
-        path.join(WIKI_PATH, badgeFilename),
-        JSON.stringify(
-          getJSONBadge(pct, badgeThresholdGreen, badgeThresholdOrange)
-        )
-      );
-    }
-
-    await gitUpdate(WIKI_PATH);
-
-    if (BadgeEnabled) {
-      const url = `https://raw.githubusercontent.com/wiki/${process.env.GITHUB_REPOSITORY}/${badgeFilename}`;
-      core.info(`Badge JSON stored at ${url}`);
-      core.info(`Badge URL: ${getShieldURL(url)}`);
-    }
+    core.info("Add a comment with the diff coverage report");
+    await addComment(octokit, context.repo, issue_number, diff.markdown);
   } else {
-    core.info("Running on pull request branch");
-    if (!existsSync(path.join(WIKI_PATH, baseSummaryFilename))) {
-      core.info("No base json-summary found");
-      return;
-    }
+    core.info(diff.results);
+  }
 
-    const issue_number = context?.payload?.pull_request?.number;
-    const allowedToFail = core.getBooleanInput("allowed-to-fail");
-    const base = JSON.parse(
-      await readFile(path.join(WIKI_PATH, baseSummaryFilename), "utf8")
-    );
-
-    const diff = computeDiff(base, head, { allowedToFail });
-
-    if (issue_number) {
-      await deleteExistingComments(octokit, context.repo, issue_number);
-
-      core.info("Add a comment with the diff coverage report");
-      await addComment(octokit, context.repo, issue_number, diff.markdown);
-    } else {
-      core.info(diff.results);
-    }
-
-    if (!allowedToFail && diff.regression) {
-      throw new Error("Total coverage is lower than the default branch");
-    }
+  if (!allowedToFail && diff.regression) {
+    throw new Error("Total coverage is lower than the default branch");
   }
 }
 
